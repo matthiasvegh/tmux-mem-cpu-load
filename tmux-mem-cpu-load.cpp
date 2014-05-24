@@ -48,6 +48,30 @@
 // Tmux color lookup tables for the different metrics.
 #include "luts.h"
 
+std::string invertLut(std::string lut) {
+	std::size_t fgPos = lut.find("fg");
+	std::size_t bgPos = lut.find("bg");
+	std::swap(lut[fgPos], lut[bgPos]);
+
+	return lut;
+}
+
+std::string changeBgOfLut(std::string lut, std::string newBg) {
+	std::size_t bgPos = lut.find("bg");
+
+	std::string toReturn;
+	for(std::size_t i=0; i<bgPos; ++i) {
+		toReturn.push_back(lut[i]);
+	}
+
+	toReturn.append("bg=");
+
+	toReturn.append(newBg);
+	toReturn.push_back(']');
+
+	return "";
+}
+
 // Function declarations.
 float cpu_percentage( unsigned int cpu_usage_delay );
 std::string cpu_string( unsigned int cpu_usage_delay,
@@ -186,16 +210,21 @@ std::string cpu_string( unsigned int cpu_usage_delay,
     meter_count++;
     }
 
+  std::string lut = cpu_percentage_lut[static_cast<unsigned int>( percentage )];
+  std::string inverseLut = invertLut(lut);
   if( use_colors )
     {
-    oss << cpu_percentage_lut[static_cast<unsigned int>( percentage )];
-    }
+	oss << inverseLut;
+	oss << "";
+    oss << lut;
+	}
   oss << meter;
   oss.width( 5 );
   oss << percentage;
   oss << "%";
   if( use_colors )
     {
+	oss << "";
     oss << "#[fg=default,bg=default]";
     }
 
@@ -286,14 +315,20 @@ std::string mem_string( bool use_colors )
   meminfo_file.close();
 
 #endif // platform
+  const char* lut = mem_lut[(100 * used_mem) / total_mem];
+  std::string inverseLut = invertLut(lut);
 
   if( use_colors )
     {
-    oss << mem_lut[(100 * used_mem) / total_mem];
+	oss << inverseLut;
+	oss << "";
+	oss << lut;
     }
   oss << used_mem / 1024 << '/' << total_mem / 1024 << "MB";
   if( use_colors )
     {
+	oss << lut;
+	oss << "";
     oss << "#[fg=default,bg=default]";
     }
 
@@ -354,7 +389,11 @@ std::string load_string( bool use_colors )
       {
       load_percent = 100;
       }
-    oss << load_lut[load_percent];
+	std::string lut = load_lut[load_percent];
+	std::string inverseLut = invertLut(lut);
+	oss << inverseLut;
+	oss << "";
+    oss << lut;
     }
 
   oss << load_line.substr( 0, 14 );
@@ -417,7 +456,7 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
     }
 
-  std::cout << mem_string( use_colors ) << ' ' << cpu_string( cpu_usage_delay, graph_lines, use_colors ) << ' ' << load_string( use_colors );
+  std::cout << mem_string( use_colors ) << cpu_string( cpu_usage_delay, graph_lines, use_colors ) << load_string( use_colors );
 
   return EXIT_SUCCESS;
 }
